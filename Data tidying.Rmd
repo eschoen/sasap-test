@@ -1,0 +1,45 @@
+---
+title: "Data tidying"
+author: "Erik Schoen"
+date: "10/16/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, load packages.
+```{r load packages, warning = F, message = F}
+library(dplyr)
+library(tidyr)
+```
+
+Then read in catch data from [Mike Byerly. Alaska commercial salmon catches by management region (1886- 1997). Gulf of Alaska Data Portal](https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1)
+
+```{r read in data}
+catch_df <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"),
+                    stringsAsFactors = FALSE)
+head(catch_df)
+```
+
+(Using backticks denotes text rendered to look like code)
+`select` the columns we need for the analysis
+`gather` to reshape from wide to long format
+`rename` to indicate units of catch
+
+```{r}
+catch_clean <- catch_df %>% 
+  select(Region, Year, Chinook, Sockeye, Pink, Chum) %>% 
+  gather(key = "Species", value = "Catch", -Region, -Year) %>% 
+  rename(Catch_1000s = Catch)
+
+head(catch_clean)
+
+```
+
+
+
+```{r}
+
+
