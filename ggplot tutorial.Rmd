@@ -1,0 +1,147 @@
+---
+title: "ggplot tutorial"
+author: "Erik Schoen"
+date: "10/17/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load example data
+
+Load data from the KNB for generating plots
+
+```{r load packages and data}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(tidyr)
+  library(dplyr)
+  library(DT)
+})
+
+# https://knb.ecoinformatics.org/#view/urn:uuid:e05865d7-678d-4513-9061-2ab7d979f8e7
+# Search 'permit value'
+permits <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa3c58bd6-481e-4c64-aa93-795df10a4664", method = "libcurl"),
+                    stringsAsFactors = FALSE)
+
+datatable(permits)
+```
+
+# Start exploring ggplot
+
+```{r start exploring ggplot}
+ggplot(data = permits, aes(x = Value, y = StdDev, color = Region, shape = Gear)) +
+  geom_point()
+```
+
+```{r}
+# only use the aes() call to map plots to the data
+ggplot(data = permits, aes(x = Value, y = StdDev, shape = Gear)) +
+  # set constants in the geometry call
+  geom_point(color = "blue")
+```
+
+# Make a histogram
+
+```{r}
+ggplot(data = permits, aes(x = Value)) +
+  geom_histogram()
+```
+
+```{r}
+ggplot(data = permits, aes(x = Gear, y = Value)) +
+  geom_boxplot()
+```
+
+```{r}
+ggplot(data = permits, aes(x = Gear, y = Value)) +
+  geom_violin() +
+  geom_point(shape = 1, position = "jitter")
+```
+
+```{r}
+ggplot(data = permits, aes(x = Value, y = StdDev)) +
+  geom_point() +
+  geom_smooth()
+```
+
+# Categorical plots
+
+```{r}
+
+permits_sum <- permits %>%
+  group_by(Gear, Region) %>%
+  summarize(mean_value = mean(Value, na.rm = T))
+
+ggplot(data = permits_sum, aes(x = Region, y = mean_value, fill = Gear)) +
+  geom_bar(position = "stack", stat = "identity")
+```
+
+# Scatterplot with lines
+```{r}
+permits_se_seine <- permits %>%
+  filter(Region == "Southeast" & Gear == "Purse Seine")
+
+ggplot(permits_se_seine, aes(Year, Value)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = c(0, max(permits_se_seine$Value)))
+```
+
+
+# Themes
+```{r}
+
+ggplot(permits_se_seine, aes(Year, Value)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = c(0, max(permits_se_seine$Value))) +
+  theme_classic()
+```
+
+
+# Building your own theme
+
+```{r}
+# Build a custom theme
+my_theme <- theme_bw() +
+  theme(legend.title = element_blank()) +
+  theme(panel.grid.minor = element_blank())
+
+# Use the custom theme
+ggplot(permits_se_seine, aes(Year, Value)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = c(0, max(permits_se_seine$Value))) +
+  my_theme
+```
+
+# Facets
+
+```{r}
+ggplot(data = filter(permits, Region == "Cook Inlet"), aes(x = Year, y = Value)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(~ Gear)
+```
+
+# Multi-panel plots: going beyond facets
+
+```{r}
+suppressPackageStartupMessages({
+  library(gridExtra)
+})
+
+p1 <- ggplot(permits_se_seine, aes(Year, Value)) +
+  geom_point() + 
+  geom_line()
+
+p2 <- ggplot(permits %>% filter(Gear == "Purse Seine"), aes(Region, Value)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = function(x) { format(x, scientific = FALSE) })
+
+grid.arrange(p1, p2)
+```
+

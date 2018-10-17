@@ -80,3 +80,51 @@ catch_chinook <- catch_clean_mutated %>%
 
 head(catch_chinook)
 ```
+
+# Read in regions data table
+```{r}
+region_defs <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"),
+                        stringsAsFactors = FALSE)
+head(region_defs)
+```
+
+```{r}
+region_defs <- region_defs %>% 
+  select(Region = code, mgmtArea)
+head(region_defs)
+```
+
+Best practices for joins:
++ Always write to a new data frame, and then check if the number of rows in the new table matches the left table.
++ Put both tables into the parentheses to make it more clear which are the left
+and right tables (don't use a pipe).
++ Check for NAs or duplicates in your primary keys
+```{r}
+catch_joined <- left_join(catch_clean_mutated, region_defs, by = "Region") 
+head(catch_joined)
+# check if any regions didn't join
+i <- which(is.na(catch_joined$mgmtArea))
+nrow(i)
+# good, no regions are NA
+```
+
+Make some date data in a non-ideal format  
+Then `separate` it into separate columns
+```{r}
+dates_df <- data.frame(date = c("5/24/1930",
+                                "5/25/1930",
+                                "5/26/1930",
+                                "5/27/1930",
+                                "5/28/1930"),
+                       stringsAsFactors = FALSE)
+
+dates_df <- dates_df %>% 
+  separate(date, c("month", "day", "year"), "/", remove = F)
+
+dates_iso <- dates_df %>% 
+  unite(col = date_iso, year, month, day, sep = "-")
+head(dates_iso)
+```
+
+
+

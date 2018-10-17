@@ -1,0 +1,80 @@
+---
+title: "Escapement goals eval"
+author: "Erik Schoen"
+date: "10/17/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages
+```{r load packages, warning = F, message = F}
+library(dplyr)
+library(tidyr)
+library(lubridate)
+```
+
+# Prepare daily escapement data
+
++ read in daily data from [Alaska Department of Fish and Game. 2017. Daily salmon escapement counts from the OceanAK database, Alaska, 1921-2017. Knowledge Network for Biocomplexity. doi:10.5063/F1TX3CKH.](doi:10.5063/F1TX3CKH)
+
+```{r read in daily escapement data}
+esc_daily <- read.csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Af119a05b-bbe7-4aea-93c6-85434dcb1c5e")
+
+head(esc_daily)
+```
+
++ filter for Bristol Bay sockeye
++ summarize by river and year, calculating total count
+
+```{r clean and summarize escapement data by location and year}
+levels(esc_daily$SASAP.Region)
+esc_annual <- esc_daily %>%
+  filter(SASAP.Region == "Bristol Bay" & Species == "Sockeye") %>%
+  mutate(Date = ymd(sampleDate)) %>%
+  mutate(Year = year(Date)) %>%
+  group_by(Location, Year) %>%
+  summarize(Esc_Annual = sum(DailyCount, na.rm = T))
+
+head(esc_annual)
+```
+
+
+# Prepare escapement goals data
+
+```{r read in escapement goals data}
+esc_goals <- read.csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92014.1", stringsAsFactors = F)
+
+head(esc_goals)
+```
+```{r clean up escapement goals}
+esc_goals_clean <- esc_goals %>%
+  filter(Region == "Bristol Bay" & Species == "Sockeye") %>%
+  filter(Lower != "eliminated") %>%
+  select(Region, Location = System, Lower, Upper, Type, Initial.Year) %>%
+  mutate(Lower = as.numeric(Lower),
+         Initial.Year = as.numeric(Initial.Year))
+
+head(esc_goals_clean)
+```
+
+
+# Evaluate escapement goals
+
+```{r join escapement data to goals}
+esc_eval <- left_join(esc_annual, esc_goals_clean, by = "Location")
+
+# Too many rows because there are 2 escapement goals for the Nushagak
+# filter out the OEG rows
+
+esc_eval2 <- esc_eval %>%
+  filter(Type != "OEG")
+
+# Evaluate whether the escapement goals were met
+esc_eval2 <- esc_eval %>%
+  mutate(Goal_Met = ifelse(Esc_Annual >= Lower & Esc_Annual <= Upper, T, F))
+esc_eval2
+```
+
