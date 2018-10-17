@@ -38,8 +38,45 @@ head(catch_clean)
 
 ```
 
+Find a typo preventing Catch_1000s from being coerced to numeric
+```{r}
+test <- as.numeric(catch_clean$Catch_1000s)
+i <- which(is.na(test) == T)
+print(i)
+catch_clean[i, ]
+```
+
+`mutate` to fix a typo, convert catch_1000s to numeric, and create a new catch column in numbers of fish
+
+```{r}
+catch_clean_mutated <- catch_clean %>% 
+  mutate(Catch_1000s = ifelse(Catch_1000s == "I", 1, Catch_1000s)) %>%
+  mutate(Catch_1000s = as.numeric(Catch_1000s)) %>%
+  mutate(Catch = Catch_1000s * 1000) %>%
+  select(-Catch_1000s)
+
+tail(catch_clean_mutated)
+```
+
+split using `group_by`
+apply and combine using `summarize`
+
+```{r}
+catch_summarized <- catch_clean_mutated %>%
+  group_by(Region, Year) %>%
+  summarize(mean_catch = mean(Catch),
+            sd_catch = sd(Catch),
+            n_obs = n())
+
+head(catch_summarized)
+```
 
 
 ```{r}
+catch_chinook <- catch_clean_mutated %>%
+  filter(Species == "Chinook") %>%
+  group_by(Region) %>%
+  summarize(meanCatch = mean(Catch))
 
-
+head(catch_chinook)
+```

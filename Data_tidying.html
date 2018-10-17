@@ -157,6 +157,63 @@ head(catch_clean)</code></pre>
 ## 4    SSE 1889 Chinook           0
 ## 5    SSE 1890 Chinook           0
 ## 6    SSE 1891 Chinook           0</code></pre>
+<p>Find a typo preventing Catch_1000s from being coerced to numeric</p>
+<pre class="r"><code>test &lt;- as.numeric(catch_clean$Catch_1000s)</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre class="r"><code>i &lt;- which(is.na(test) == T)
+print(i)</code></pre>
+<pre><code>## [1] 401</code></pre>
+<pre class="r"><code>catch_clean[i, ]</code></pre>
+<pre><code>##     Region Year Species Catch_1000s
+## 401    GSE 1955 Chinook           I</code></pre>
+<p><code>mutate</code> to fix a typo, convert catch_1000s to numeric, and create a new catch column in numbers of fish</p>
+<pre class="r"><code>catch_clean_mutated &lt;- catch_clean %&gt;% 
+  mutate(Catch_1000s = ifelse(Catch_1000s == &quot;I&quot;, 1, Catch_1000s)) %&gt;%
+  mutate(Catch_1000s = as.numeric(Catch_1000s)) %&gt;%
+  mutate(Catch = Catch_1000s * 1000) %&gt;%
+  select(-Catch_1000s)
+
+tail(catch_clean_mutated)</code></pre>
+<pre><code>##      Region Year Species  Catch
+## 6827    NOP 1992    Chum 342000
+## 6828    NOP 1993    Chum 135000
+## 6829    NOP 1994    Chum  84000
+## 6830    NOP 1995    Chum  99000
+## 6831    NOP 1996    Chum  68000
+## 6832    NOP 1997    Chum  97000</code></pre>
+<p>split using <code>group_by</code> apply and combine using <code>summarize</code></p>
+<pre class="r"><code>catch_summarized &lt;- catch_clean_mutated %&gt;%
+  group_by(Region, Year) %&gt;%
+  summarize(mean_catch = mean(Catch),
+            sd_catch = sd(Catch),
+            n_obs = n())
+
+head(catch_summarized)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+## # Groups:   Region [1]
+##   Region  Year mean_catch sd_catch n_obs
+##   &lt;chr&gt;  &lt;int&gt;      &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt;
+## 1 ALU     1911       2250    4500      4
+## 2 ALU     1912          0       0      4
+## 3 ALU     1913          0       0      4
+## 4 ALU     1914          0       0      4
+## 5 ALU     1915          0       0      4
+## 6 ALU     1916      64000   85229.     4</code></pre>
+<pre class="r"><code>catch_chinook &lt;- catch_clean_mutated %&gt;%
+  filter(Species == &quot;Chinook&quot;) %&gt;%
+  group_by(Region) %&gt;%
+  summarize(meanCatch = mean(Catch))
+
+head(catch_chinook)</code></pre>
+<pre><code>## # A tibble: 6 x 2
+##   Region meanCatch
+##   &lt;chr&gt;      &lt;dbl&gt;
+## 1 ALU         23.0
+## 2 BER         19.6
+## 3 BRB      76211. 
+## 4 CHG       1536. 
+## 5 CKI      43876. 
+## 6 COP      19798.</code></pre>
 
 
 
